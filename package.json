@@ -11,6 +11,7 @@
     "@testing-library/user-event": "^13.5.0",
     "antd": "^6.5.2",
     "cross-env": "^10.1.0",
+    "dayjs": "^1.11.21",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-hot-toast": "^2.6.0",

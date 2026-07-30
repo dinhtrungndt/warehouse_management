@@ -9,6 +9,9 @@ import Dashboard from './pages/Dashboard';
 import Login from './pages/Login';
 import AssetCatalog from './pages/AssetCatalog';
 import DepartmentCatalog from './pages/DepartmentCatalog';
+import Import from './pages/Import';
+import Export from './pages/Export';
+import Transfer from './pages/Transfer';
 
 const EmptyPage = ({ title }) => (
   <div style={{ padding: 24, background: '#fff', minHeight: 360, borderRadius: 8 }}>
@@ -45,9 +48,9 @@ function App() {
             <Route index element={<Dashboard />} />
             <Route path="danh-muc/tai-san" element={<AssetCatalog />} />
             <Route path="danh-muc/phong-ban" element={<DepartmentCatalog />} />
-            <Route path="kho/nhap" element={<EmptyPage title="Nhập Kho" />} />
-            <Route path="kho/xuat" element={<EmptyPage title="Xuất Kho" />} />
-            <Route path="kho/dieu-chuyen" element={<EmptyPage title="Điều Chuyển Nhanh" />} />
+            <Route path="kho/nhap" element={<Import />} />
+            <Route path="kho/xuat" element={<Export />} />
+            <Route path="kho/dieu-chuyen" element={<Transfer />} />
             <Route path="rfid/in-the" element={<EmptyPage title="In Tem Nhãn Tag RFID" />} />
             <Route path="rfid/phat-hanh" element={<EmptyPage title="Phát Hành Tag ID RFID" />} />
             <Route path="kiem-ke/thuc-hien" element={<EmptyPage title="Kiểm Kê Tài Sản" />} />
