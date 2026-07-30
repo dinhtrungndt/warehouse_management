@@ -12,6 +12,13 @@ import DepartmentCatalog from './pages/DepartmentCatalog';
 import Import from './pages/Import';
 import Export from './pages/Export';
 import Transfer from './pages/Transfer';
+import Inventory from './pages/Inventory';
+import RFIDIssue from './pages/RFIDIssue';
+import RFIDPrint from './pages/RFIDPrint';
+import SystemUser from './pages/SystemUser';
+import SystemPrinter from './pages/SystemPrinter';
+import SystemReport from './pages/SystemReport';
+import InventorySummary from './pages/InventorySummary';
 
 const EmptyPage = ({ title }) => (
   <div style={{ padding: 24, background: '#fff', minHeight: 360, borderRadius: 8 }}>
@@ -51,13 +58,13 @@ function App() {
             <Route path="kho/nhap" element={<Import />} />
             <Route path="kho/xuat" element={<Export />} />
             <Route path="kho/dieu-chuyen" element={<Transfer />} />
-            <Route path="rfid/in-the" element={<EmptyPage title="In Tem Nhãn Tag RFID" />} />
-            <Route path="rfid/phat-hanh" element={<EmptyPage title="Phát Hành Tag ID RFID" />} />
-            <Route path="kiem-ke/thuc-hien" element={<EmptyPage title="Kiểm Kê Tài Sản" />} />
-            <Route path="kiem-ke/tong-hop" element={<EmptyPage title="Tổng Hợp Kiểm Kê" />} />
-            <Route path="he-thong/user" element={<EmptyPage title="Phân Quyền User" />} />
-            <Route path="he-thong/may-in" element={<EmptyPage title="Cấu Hình Máy In Zebra" />} />
-            <Route path="he-thong/bao-cao" element={<EmptyPage title="Hệ Thống Báo Cáo" />} />
+            <Route path="rfid/in-the" element={<RFIDPrint />} />
+            <Route path="rfid/phat-hanh" element={<RFIDIssue />} />
+            <Route path="kiem-ke/thuc-hien" element={<Inventory />} />
+            <Route path="kiem-ke/tong-hop" element={<InventorySummary />} />
+            <Route path="he-thong/user" element={<SystemUser />} />
+            <Route path="he-thong/may-in" element={<SystemPrinter />} />
+            <Route path="he-thong/bao-cao" element={<SystemReport />} />
           </Route>
         </Routes>
       </BrowserRouter>

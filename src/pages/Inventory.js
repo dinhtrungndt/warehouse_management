@@ -1,0 +1,300 @@
+import React, { useState } from 'react';
+import { 
+  Table, 
+  Button, 
+  Input, 
+  Space, 
+  Card, 
+  Modal, 
+  Form, 
+  Select, 
+  DatePicker, 
+  Typography,
+  Tooltip,
+  Tag,
+  Row,
+  Col,
+  Statistic,
+  Divider,
+  Popconfirm
+} from 'antd';
+import { 
+  PlusOutlined, 
+  SearchOutlined, 
+  EyeOutlined,
+  DeleteOutlined,
+  CheckCircleOutlined,
+  SyncOutlined,
+  WarningOutlined
+} from '@ant-design/icons';
+import toast from 'react-hot-toast';
+import dayjs from 'dayjs';
+
+const { Option } = Select;
+const { Title, Text } = Typography;
+
+// Mock Data for Inventory Sessions
+const generateInventoryData = () => {
+  const data = [];
+  for (let i = 1; i <= 6; i++) {
+    const isCompleted = i % 2 !== 0;
+    const sysTotal = 150 + i * 10;
+    const scanned = isCompleted ? sysTotal - (i % 3) : 0; 
+    
+    data.push({
+      key: i.toString(),
+      code: `KK230${i.toString().padStart(2, '0')}`,
+      title: `Kiểm kê định kỳ đợt ${i} - Kho Vật Tư BR`,
+      date: dayjs().subtract(i * 10, 'day').format('DD/MM/YYYY'),
+      department: 'Kho vật tư BR',
+      status: isCompleted ? 'Hoàn thành' : 'Đang thực hiện',
+      systemTotal: sysTotal,
+      scannedTotal: scanned,
+      missing: isCompleted ? sysTotal - scanned : 0,
+    });
+  }
+  return data;
+};
+
+const Inventory = () => {
+  const [data, setData] = useState(generateInventoryData());
+  const [searchText, setSearchText] = useState('');
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [isDetailVisible, setIsDetailVisible] = useState(false);
+  const [editingItem, setEditingItem] = useState(null);
+  const [form] = Form.useForm();
+
+  // Filter
+  const filteredData = data.filter(item => 
+    item.code.toLowerCase().includes(searchText.toLowerCase()) ||
+    item.title.toLowerCase().includes(searchText.toLowerCase())
+  );
+
+  const showCreateModal = () => {
+    form.resetFields();
+    form.setFieldsValue({
+      code: `KK${dayjs().format('YYMMDDHHmm')}`,
+      date: dayjs(),
+    });
+    setIsModalVisible(true);
+  };
+
+  const showDetailModal = (record) => {
+    setEditingItem(record);
+    setIsDetailVisible(true);
+  };
+
+  const handleCancel = () => {
+    setIsModalVisible(false);
+    setIsDetailVisible(false);
+    setEditingItem(null);
+  };
+
+  const handleCreate = () => {
+    form.validateFields().then(values => {
+      const newSession = {
+        key: Date.now().toString(),
+        ...values,
+        date: values.date.format('DD/MM/YYYY'),
+        status: 'Đang thực hiện',
+        systemTotal: 120, // Mock initial system count for that department
+        scannedTotal: 0,
+        missing: 0,
+      };
+      setData([newSession, ...data]);
+      toast.success('Tạo kỳ kiểm kê mới thành công!');
+      setIsModalVisible(false);
+    });
+  };
+
+  const handleDelete = (key) => {
+    setData(data.filter(item => item.key !== key));
+    toast.success('Đã xóa kỳ kiểm kê');
+  };
+
+  const columns = [
+    {
+      title: 'Mã KK',
+      dataIndex: 'code',
+      key: 'code',
+      render: text => <span style={{ fontWeight: 600, color: '#13c2c2' }}>{text}</span>,
+    },
+    { title: 'Tên kỳ kiểm kê', dataIndex: 'title', key: 'title' },
+    { title: 'Ngày tạo', dataIndex: 'date', key: 'date' },
+    { title: 'Phòng ban / Kho', dataIndex: 'department', key: 'department' },
+    { 
+      title: 'Trạng thái', 
+      dataIndex: 'status', 
+      key: 'status',
+      render: status => (
+        <Tag color={status === 'Hoàn thành' ? 'success' : 'processing'} icon={status === 'Hoàn thành' ? <CheckCircleOutlined /> : <SyncOutlined spin />}>
+          {status}
+        </Tag>
+      )
+    },
+    {
+      title: 'Thao tác',
+      key: 'action',
+      align: 'center',
+      render: (_, record) => (
+        <Space size="middle">
+          <Tooltip title="Xem chi tiết / Đồng bộ">
+            <Button type="text" icon={<EyeOutlined />} onClick={() => showDetailModal(record)} style={{ color: '#1890ff' }} />
+          </Tooltip>
+          <Popconfirm title="Xóa kỳ kiểm kê này?" onConfirm={() => handleDelete(record.key)} okText="Xóa" cancelText="Hủy" okButtonProps={{ danger: true }}>
+            <Button type="text" danger icon={<DeleteOutlined />} disabled={record.status === 'Hoàn thành'} />
+          </Popconfirm>
+        </Space>
+      ),
+    },
+  ];
+
+  // Mock Detailed items for the Detail Modal
+  const detailColumns = [
+    { title: 'Mã tài sản', dataIndex: 'assetId', key: 'assetId' },
+    { title: 'Tên tài sản', dataIndex: 'name', key: 'name' },
+    { title: 'Tồn hệ thống', dataIndex: 'sysCount', key: 'sysCount', align: 'center' },
+    { title: 'Thực tế (Quét được)', dataIndex: 'scanCount', key: 'scanCount', align: 'center' },
+    { 
+      title: 'Chênh lệch', 
+      key: 'diff',
+      align: 'center',
+      render: (_, record) => {
+        const diff = record.scanCount - record.sysCount;
+        if (diff === 0) return <Tag color="success">Khớp</Tag>;
+        if (diff < 0) return <Tag color="error">Thiếu {Math.abs(diff)}</Tag>;
+        return <Tag color="warning">Thừa {diff}</Tag>;
+      }
+    }
+  ];
+
+  const detailMockData = [
+    { key: '1', assetId: 'VTT010001C', name: 'Laptop Dell XPS 15', sysCount: 1, scanCount: 1 },
+    { key: '2', assetId: 'VTT010002C', name: 'Máy chiếu Panasonic', sysCount: 2, scanCount: 1 }, // Thiếu 1
+    { key: '3', assetId: 'VTT010003C', name: 'Bàn phím cơ Logitech', sysCount: 5, scanCount: 5 },
+  ];
+
+  return (
+    <div style={{ animation: 'fadeIn 0.5s ease-in-out' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+        <Title level={3} style={{ margin: 0 }}>Quản Lý Kiểm Kê Tài Sản</Title>
+        <Space>
+          <Button type="primary" style={{ backgroundColor: '#13c2c2', borderColor: '#13c2c2' }} icon={<PlusOutlined />} onClick={showCreateModal}>
+            Tạo kỳ kiểm kê
+          </Button>
+        </Space>
+      </div>
+
+      <Card bordered={false} style={{ borderRadius: 8, boxShadow: '0 1px 2px 0 rgba(0,0,0,0.03)' }}>
+        <div style={{ marginBottom: 16 }}>
+          <Input 
+            placeholder="Tìm kiếm theo mã, tên kỳ kiểm kê..." 
+            prefix={<SearchOutlined style={{ color: '#bfbfbf' }} />}
+            style={{ width: 350 }}
+            onChange={(e) => setSearchText(e.target.value)}
+            allowClear
+            size="large"
+          />
+        </div>
+
+        <Table 
+          columns={columns} 
+          dataSource={filteredData} 
+          pagination={{ pageSize: 10 }} 
+          size="middle"
+        />
+      </Card>
+
+      {/* Modal Tạo Kỳ Kiểm Kê */}
+      <Modal
+        title="Tạo Kỳ Kiểm Kê Mới"
+        open={isModalVisible}
+        onOk={handleCreate}
+        onCancel={handleCancel}
+        okText="Tạo Mới"
+        cancelText="Hủy"
+        okButtonProps={{ style: { backgroundColor: '#13c2c2', borderColor: '#13c2c2' } }}
+      >
+        <Form form={form} layout="vertical" style={{ marginTop: 20 }}>
+          <Form.Item name="code" label="Mã kiểm kê" rules={[{ required: true }]}>
+            <Input disabled />
+          </Form.Item>
+          <Form.Item name="title" label="Tên đợt kiểm kê" rules={[{ required: true, message: 'Vui lòng nhập tên đợt kiểm kê!' }]}>
+            <Input placeholder="VD: Kiểm kê quý 3 năm 2026" />
+          </Form.Item>
+          <Form.Item name="date" label="Ngày chốt tồn" rules={[{ required: true }]}>
+            <DatePicker format="DD/MM/YYYY" style={{ width: '100%' }} />
+          </Form.Item>
+          <Form.Item name="department" label="Kho / Phòng ban cần kiểm kê" rules={[{ required: true }]}>
+            <Select placeholder="Chọn khu vực">
+              <Option value="Kho vật tư BR">Kho vật tư BR</Option>
+              <Option value="Phòng TCKT">Phòng TCKT</Option>
+              <Option value="Phòng ATMT">Phòng ATMT</Option>
+              <Option value="Toàn Công Ty">Toàn Công Ty</Option>
+            </Select>
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      {/* Modal Chi Tiết Kiểm Kê (Báo cáo chênh lệch) */}
+      <Modal
+        title={`Chi Tiết Kiểm Kê - ${editingItem?.code}`}
+        open={isDetailVisible}
+        onCancel={handleCancel}
+        footer={[
+          <Button key="close" onClick={handleCancel}>Đóng</Button>,
+          <Button key="sync" type="primary" icon={<SyncOutlined />} onClick={() => toast.success('Đã đồng bộ dữ liệu từ thiết bị cầm tay!')}>
+            Đồng bộ từ Handheld
+          </Button>,
+          <Button key="complete" type="primary" style={{ backgroundColor: '#52c41a', borderColor: '#52c41a' }} onClick={() => {
+            toast.success('Đã chốt sổ kiểm kê!');
+            handleCancel();
+          }}>
+            Chốt Sổ Kỳ Này
+          </Button>
+        ]}
+        width={900}
+      >
+        {editingItem && (
+          <div>
+            <Row gutter={16} style={{ marginBottom: 24, marginTop: 16 }}>
+              <Col span={8}>
+                <Card size="small">
+                  <Statistic title="Tổng Tồn Sổ Sách" value={editingItem.systemTotal} suffix="Tài sản" />
+                </Card>
+              </Col>
+              <Col span={8}>
+                <Card size="small">
+                  <Statistic title="Đã Quét (Thực tế)" value={editingItem.scannedTotal} suffix="Tài sản" valueStyle={{ color: '#1890ff' }} />
+                </Card>
+              </Col>
+              <Col span={8}>
+                <Card size="small">
+                  <Statistic 
+                    title="Chênh Lệch Thiếu" 
+                    value={editingItem.missing} 
+                    suffix="Tài sản" 
+                    valueStyle={{ color: editingItem.missing > 0 ? '#cf1322' : '#3f8600' }} 
+                    prefix={editingItem.missing > 0 ? <WarningOutlined /> : <CheckCircleOutlined />}
+                  />
+                </Card>
+              </Col>
+            </Row>
+            
+            <Divider orientation="left">Chi Tiết Bảng Kê</Divider>
+            
+            <Table 
+              columns={detailColumns} 
+              dataSource={detailMockData} 
+              pagination={false} 
+              size="small"
+              bordered
+            />
+          </div>
+        )}
+      </Modal>
+    </div>
+  );
+};
+
+export default Inventory;
