@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Table,
   Button,
@@ -6,145 +6,97 @@ import {
   Space,
   Card,
   Drawer,
-  Form,
-  Select,
-  DatePicker,
   Typography,
   Tooltip,
   Row,
   Col,
-  InputNumber,
-  Popconfirm
+  message,
+  Tag
 } from 'antd';
 import {
-  PlusOutlined,
   SearchOutlined,
   EyeOutlined,
-  PrinterOutlined,
-  DeleteOutlined
+  PrinterOutlined
 } from '@ant-design/icons';
-import toast from 'react-hot-toast';
 import dayjs from 'dayjs';
+import apiClient from '../services/apiClient';
 
-const { Option } = Select;
 const { Title, Text } = Typography;
 
-const generateSlips = () => {
-  const data = [];
-  for (let i = 1; i <= 12; i++) {
-    data.push({
-      key: i.toString(),
-      slipId: `TSX22000${i.toString().padStart(3, '0')}`,
-      date: dayjs().subtract(i * 2, 'hour').format('DD/MM/YYYY HH:mm'),
-      department: i % 2 === 0 ? 'Phòng TCKT' : 'Phòng ATMT',
-      creator: 'ADMIN',
-      purpose: i % 2 === 0 ? 'Xuất sử dụng' : 'Xuất bảo trì',
-      totalItems: Math.floor(Math.random() * 5) + 1,
-    });
-  }
-  return data;
-};
-
 const Export = () => {
-  const [data, setData] = useState(generateSlips());
+  const [data, setData] = useState([]);
   const [searchText, setSearchText] = useState('');
   const [isDrawerVisible, setIsDrawerVisible] = useState(false);
-  const [editingItem, setEditingItem] = useState(null);
-  const [form] = Form.useForm();
+  const [viewingItem, setViewingItem] = useState(null);
   const [slipItems, setSlipItems] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [detailLoading, setDetailLoading] = useState(false);
+
+  useEffect(() => {
+    fetchSessions();
+  }, []);
+
+  const fetchSessions = async () => {
+    try {
+      setLoading(true);
+      const res = await apiClient.get('/export/sessions');
+      if (res.data.success) {
+        setData(res.data.data.map(item => ({
+          key: item.TS_ChungTuNhap_id.toString(),
+          slipId: item.MaChungTuNhap,
+          date: dayjs(item.NgayLapPhieu).format('DD/MM/YYYY HH:mm'),
+          creator: item.NguoiTao || 'ADMIN',
+          totalItems: item.totalItems,
+          scannedItems: item.scannedItems,
+          status: item.scannedItems >= item.totalItems && item.totalItems > 0 ? 'Hoàn thành' : 'Đang xử lý',
+          rawDate: item.NgayLapPhieu
+        })));
+      }
+    } catch (error) {
+      message.error('Lỗi khi lấy danh sách phiếu xuất');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchSessionDetails = async (sessionId) => {
+    try {
+      setDetailLoading(true);
+      const res = await apiClient.get(`/export?sessionId=${sessionId}`);
+      if (res.data.success) {
+        setSlipItems(res.data.data.map((item, index) => ({
+          key: index.toString(),
+          assetId: item.MaTaiSan,
+          name: item.TenThietBi,
+          unit: 'Cái',
+          quantity: item.SoLuong,
+          epc: item.SoThe,
+          isScanned: item.DaXacNhan
+        })));
+      }
+    } catch (error) {
+      message.error('Lỗi khi lấy chi tiết phiếu xuất');
+    } finally {
+      setDetailLoading(false);
+    }
+  };
 
   // Handle Search
   const filteredData = data.filter(item =>
     item.slipId.toLowerCase().includes(searchText.toLowerCase()) ||
-    item.department.toLowerCase().includes(searchText.toLowerCase())
+    item.creator.toString().toLowerCase().includes(searchText.toLowerCase())
   );
 
-  const showDrawer = (record = null) => {
-    setEditingItem(record);
-    if (record) {
-      form.setFieldsValue({
-        ...record,
-        date: dayjs(record.date, 'DD/MM/YYYY HH:mm'),
-      });
-      setSlipItems([
-        { key: '1', assetId: 'VTT010332C', name: '261 SBS Control CR2', unit: 'Cái', quantity: 1 }
-      ]);
-    } else {
-      form.resetFields();
-      form.setFieldsValue({
-        slipId: `TSX${dayjs().format('YYMMDDHHmm')}`,
-        date: dayjs(),
-        creator: 'ADMIN',
-      });
-      setSlipItems([]);
-    }
+  const showDrawer = (record) => {
+    setViewingItem(record);
     setIsDrawerVisible(true);
+    fetchSessionDetails(record.key);
   };
 
   const onClose = () => {
     setIsDrawerVisible(false);
-    setEditingItem(null);
-    form.resetFields();
-  };
-
-  const handleSave = () => {
-    form.validateFields().then(values => {
-      if (slipItems.length === 0) {
-        toast.error('Phiếu xuất phải có ít nhất một tài sản/vật tư!');
-        return;
-      }
-
-      const formattedValues = {
-        ...values,
-        date: values.date.format('DD/MM/YYYY HH:mm'),
-        totalItems: slipItems.reduce((sum, item) => sum + (item.quantity || 0), 0),
-      };
-
-      if (editingItem) {
-        const newData = [...data];
-        const index = newData.findIndex(item => editingItem.key === item.key);
-        newData[index] = { ...newData[index], ...formattedValues };
-        setData(newData);
-        toast.success('Cập nhật phiếu xuất thành công!');
-      } else {
-        setData([{ key: Date.now().toString(), ...formattedValues }, ...data]);
-        toast.success('Tạo phiếu xuất kho thành công!');
-      }
-      onClose();
-    });
-  };
-
-  const handleDelete = (key) => {
-    setData(data.filter(item => item.key !== key));
-    toast.success('Đã xóa phiếu xuất');
-  };
-
-  const handleAddSlipItem = () => {
-    const newItem = {
-      key: Date.now().toString(),
-      assetId: '',
-      name: '',
-      unit: 'Cái',
-      quantity: 1,
-    };
-    setSlipItems([...slipItems, newItem]);
-  };
-
-  const handleSlipItemChange = (key, field, value) => {
-    const newData = slipItems.map(item => {
-      if (item.key === key) {
-        if (field === 'assetId' && value.length > 5) {
-          return { ...item, [field]: value, name: 'Tài sản Demo ' + value };
-        }
-        return { ...item, [field]: value };
-      }
-      return item;
-    });
-    setSlipItems(newData);
-  };
-
-  const removeSlipItem = (key) => {
-    setSlipItems(slipItems.filter(item => item.key !== key));
+    setViewingItem(null);
+    setSlipItems([]);
   };
 
   const columns = [
@@ -155,25 +107,38 @@ const Export = () => {
       render: text => <span style={{ fontWeight: 600, color: '#f5222d' }}>{text}</span>, // Red for Export
     },
     { title: 'Ngày chứng từ', dataIndex: 'date', key: 'date' },
-    { title: 'Phòng ban xuất', dataIndex: 'department', key: 'department' },
-    { title: 'Mục đích', dataIndex: 'purpose', key: 'purpose' },
     { title: 'Người tạo', dataIndex: 'creator', key: 'creator' },
-    { title: 'Tổng SL', dataIndex: 'totalItems', key: 'totalItems', align: 'center' },
+    { 
+      title: 'Tiến độ', 
+      key: 'progress', 
+      align: 'center',
+      render: (_, record) => (
+        <Text strong style={{ color: record.scannedItems >= record.totalItems && record.totalItems > 0 ? '#52c41a' : '#faad14' }}>
+          {record.scannedItems} / {record.totalItems}
+        </Text>
+      )
+    },
+    { 
+      title: 'Trạng thái', 
+      dataIndex: 'status', 
+      key: 'status',
+      align: 'center',
+      render: text => (
+        <Tag color={text === 'Hoàn thành' ? 'success' : 'processing'}>{text}</Tag>
+      )
+    },
     {
       title: 'Thao tác',
       key: 'action',
       align: 'center',
       render: (_, record) => (
         <Space size="small">
-          <Tooltip title="Xem / Sửa">
+          <Tooltip title="Xem chi tiết">
             <Button type="text" icon={<EyeOutlined />} onClick={() => showDrawer(record)} style={{ color: '#1890ff' }} />
           </Tooltip>
           <Tooltip title="In phiếu">
-            <Button type="text" icon={<PrinterOutlined />} onClick={() => toast('Đang kết nối máy in...', { icon: '🖨️' })} />
+            <Button type="text" icon={<PrinterOutlined />} onClick={() => message.info('Đang kết nối máy in...')} />
           </Tooltip>
-          <Popconfirm title="Xóa phiếu xuất này?" onConfirm={() => handleDelete(record.key)} okText="Xóa" cancelText="Hủy" okButtonProps={{ danger: true }}>
-            <Button type="text" danger icon={<DeleteOutlined />} />
-          </Popconfirm>
         </Space>
       ),
     },
@@ -181,48 +146,36 @@ const Export = () => {
 
   const itemColumns = [
     {
-      title: 'Mã tài sản/vật tư',
+      title: 'Mã tài sản',
       dataIndex: 'assetId',
-      width: '25%',
-      render: (text, record) => (
-        <Input value={text} placeholder="Nhập mã..." onChange={e => handleSlipItemChange(record.key, 'assetId', e.target.value)} />
-      )
+      width: '20%',
     },
     {
       title: 'Tên tài sản',
       dataIndex: 'name',
       width: '35%',
-      render: (text, record) => (
-        <Input value={text} placeholder="Tên tự động nhảy..." onChange={e => handleSlipItemChange(record.key, 'name', e.target.value)} />
-      )
-    },
-    {
-      title: 'ĐVT',
-      dataIndex: 'unit',
-      width: '15%',
-      render: (text, record) => (
-        <Select value={text} style={{ width: '100%' }} onChange={val => handleSlipItemChange(record.key, 'unit', val)}>
-          <Option value="Cái">Cái</Option>
-          <Option value="Bộ">Bộ</Option>
-          <Option value="Thùng">Thùng</Option>
-        </Select>
-      )
     },
     {
       title: 'Số lượng',
       dataIndex: 'quantity',
-      width: '15%',
-      render: (text, record) => (
-        <InputNumber min={1} value={text} onChange={val => handleSlipItemChange(record.key, 'quantity', val)} style={{ width: '100%' }} />
-      )
+      width: '10%',
+      align: 'center'
     },
     {
-      title: '',
-      key: 'action',
+      title: 'Mã thẻ (RFID)',
+      dataIndex: 'epc',
+      width: '25%',
+      render: text => text ? <Text code>{text}</Text> : <Text type="secondary">Chưa gán thẻ</Text>
+    },
+    {
+      title: 'Trạng thái',
+      key: 'status',
       width: '10%',
       align: 'center',
       render: (_, record) => (
-        <Button type="text" danger icon={<DeleteOutlined />} onClick={() => removeSlipItem(record.key)} />
+        <Tag color={record.isScanned ? 'success' : 'default'}>
+          {record.isScanned ? 'Đã quét' : 'Chưa quét'}
+        </Tag>
       )
     }
   ];
@@ -231,17 +184,13 @@ const Export = () => {
     <div style={{ animation: 'fadeIn 0.5s ease-in-out' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
         <Title level={3} style={{ margin: 0 }}>Nghiệp Vụ Xuất Kho</Title>
-        <Space>
-          <Button danger type="primary" icon={<PlusOutlined />} onClick={() => showDrawer()}>
-            Tạo phiếu xuất
-          </Button>
-        </Space>
+        <Button onClick={fetchSessions} loading={loading}>Làm mới</Button>
       </div>
 
       <Card bordered={false} style={{ borderRadius: 8, boxShadow: '0 1px 2px 0 rgba(0,0,0,0.03)' }}>
         <div style={{ marginBottom: 16 }}>
           <Input
-            placeholder="Tìm kiếm theo mã chứng từ, phòng ban..."
+            placeholder="Tìm kiếm theo mã chứng từ..."
             prefix={<SearchOutlined style={{ color: '#bfbfbf' }} />}
             style={{ width: 350 }}
             onChange={(e) => setSearchText(e.target.value)}
@@ -253,80 +202,53 @@ const Export = () => {
         <Table
           columns={columns}
           dataSource={filteredData}
+          loading={loading}
           pagination={{ pageSize: 10, showTotal: total => `Tổng cộng ${total} phiếu` }}
           size="middle"
         />
       </Card>
 
       <Drawer
-        title={editingItem ? `Chi tiết phiếu xuất: ${editingItem.slipId}` : "Tạo Phiếu Xuất Kho Mới"}
+        title={viewingItem ? `Chi tiết phiếu xuất: ${viewingItem.slipId}` : "Chi Tiết Phiếu Xuất"}
         width={900}
         onClose={onClose}
         open={isDrawerVisible}
-        extra={
-          <Space>
-            <Button onClick={onClose}>Hủy</Button>
-            <Button danger type="primary" onClick={handleSave}>Lưu Phiếu Xuất</Button>
-          </Space>
-        }
       >
-        <Form form={form} layout="vertical">
-          <Row gutter={16}>
+        {viewingItem && (
+          <Row gutter={16} style={{ marginBottom: 24 }}>
             <Col span={8}>
-              <Form.Item name="slipId" label="Mã chứng từ" rules={[{ required: true }]}>
-                <Input disabled style={{ fontWeight: 'bold' }} />
-              </Form.Item>
+              <Text type="secondary">Mã chứng từ:</Text>
+              <div><Text strong>{viewingItem.slipId}</Text></div>
             </Col>
             <Col span={8}>
-              <Form.Item name="date" label="Ngày chứng từ" rules={[{ required: true }]}>
-                <DatePicker showTime format="DD/MM/YYYY HH:mm" style={{ width: '100%' }} />
-              </Form.Item>
+              <Text type="secondary">Ngày lập phiếu:</Text>
+              <div><Text strong>{viewingItem.date}</Text></div>
             </Col>
             <Col span={8}>
-              <Form.Item name="creator" label="Người tạo">
-                <Input disabled />
-              </Form.Item>
+              <Text type="secondary">Tiến độ quét:</Text>
+              <div>
+                <Text strong style={{ color: viewingItem.scannedItems >= viewingItem.totalItems && viewingItem.totalItems > 0 ? '#52c41a' : '#faad14' }}>
+                  {viewingItem.scannedItems} / {viewingItem.totalItems}
+                </Text>
+              </div>
             </Col>
           </Row>
+        )}
 
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item name="department" label="Phòng ban xuất" rules={[{ required: true, message: 'Vui lòng chọn phòng ban!' }]}>
-                <Select placeholder="Chọn phòng ban">
-                  <Option value="Phòng TCKT">Phòng TCKT</Option>
-                  <Option value="Phòng ATMT">Phòng ATMT</Option>
-                  <Option value="Kho vật tư BR">Kho vật tư BR</Option>
-                </Select>
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item name="purpose" label="Mục đích xuất" rules={[{ required: true }]}>
-                <Select placeholder="Chọn mục đích">
-                  <Option value="Xuất sử dụng">Xuất sử dụng</Option>
-                  <Option value="Xuất bảo trì">Xuất bảo trì</Option>
-                  <Option value="Xuất thanh lý">Xuất thanh lý</Option>
-                </Select>
-              </Form.Item>
-            </Col>
-          </Row>
+        <div style={{ marginBottom: 16 }}>
+          <Text strong style={{ fontSize: 16 }}>Danh sách tài sản / vật tư xuất kho</Text>
+        </div>
 
-          <div style={{ marginTop: 24, marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Text strong style={{ fontSize: 16 }}>Danh sách tài sản / vật tư xuất kho</Text>
-            <Button type="dashed" danger icon={<PlusOutlined />} onClick={handleAddSlipItem}>
-              Thêm dòng
-            </Button>
-          </div>
+        <Table
+          columns={itemColumns}
+          dataSource={slipItems}
+          loading={detailLoading}
+          pagination={false}
+          size="small"
+          bordered
+          locale={{ emptyText: 'Chưa có tài sản nào trong phiếu' }}
+        />
 
-          <Table
-            columns={itemColumns}
-            dataSource={slipItems}
-            pagination={false}
-            size="small"
-            bordered
-            locale={{ emptyText: 'Chưa có tài sản nào trong phiếu' }}
-          />
-
-        </Form>
       </Drawer>
     </div>
   );

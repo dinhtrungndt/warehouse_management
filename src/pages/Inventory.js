@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Table, 
   Button, 
@@ -16,7 +16,8 @@ import {
   Col,
   Statistic,
   Divider,
-  Popconfirm
+  Popconfirm,
+  message
 } from 'antd';
 import { 
   PlusOutlined, 
@@ -27,42 +28,70 @@ import {
   SyncOutlined,
   WarningOutlined
 } from '@ant-design/icons';
-import toast from 'react-hot-toast';
 import dayjs from 'dayjs';
+import apiClient from '../services/apiClient';
 
 const { Option } = Select;
-const { Title, Text } = Typography;
-
-// Mock Data for Inventory Sessions
-const generateInventoryData = () => {
-  const data = [];
-  for (let i = 1; i <= 6; i++) {
-    const isCompleted = i % 2 !== 0;
-    const sysTotal = 150 + i * 10;
-    const scanned = isCompleted ? sysTotal - (i % 3) : 0; 
-    
-    data.push({
-      key: i.toString(),
-      code: `KK230${i.toString().padStart(2, '0')}`,
-      title: `Kiểm kê định kỳ đợt ${i} - Kho Vật Tư BR`,
-      date: dayjs().subtract(i * 10, 'day').format('DD/MM/YYYY'),
-      department: 'Kho vật tư BR',
-      status: isCompleted ? 'Hoàn thành' : 'Đang thực hiện',
-      systemTotal: sysTotal,
-      scannedTotal: scanned,
-      missing: isCompleted ? sysTotal - scanned : 0,
-    });
-  }
-  return data;
-};
+const { Title } = Typography;
 
 const Inventory = () => {
-  const [data, setData] = useState(generateInventoryData());
+  const [data, setData] = useState([]);
   const [searchText, setSearchText] = useState('');
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isDetailVisible, setIsDetailVisible] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
+  const [detailItems, setDetailItems] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [detailLoading, setDetailLoading] = useState(false);
   const [form] = Form.useForm();
+
+  useEffect(() => {
+    fetchSessions();
+  }, []);
+
+  const fetchSessions = async () => {
+    try {
+      setLoading(true);
+      const res = await apiClient.get('/inventory/sessions');
+      if (res.data.success) {
+        setData(res.data.data.map(item => ({
+          key: item.TaiSanKiemKe_id.toString(),
+          code: item.MaKiemKe,
+          title: `Kiểm kê đợt ${item.MaKiemKe}`,
+          date: dayjs(item.NgayLapPhieu).format('DD/MM/YYYY'),
+          department: item.NguoiKiemKe || 'Hệ thống',
+          status: item.scannedItems >= item.totalItems && item.totalItems > 0 ? 'Hoàn thành' : 'Đang thực hiện',
+          systemTotal: item.totalItems,
+          scannedTotal: item.scannedItems,
+          missing: Math.max(0, item.totalItems - item.scannedItems),
+        })));
+      }
+    } catch (error) {
+      message.error('Lỗi khi lấy danh sách kỳ kiểm kê');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchSessionDetails = async (sessionId) => {
+    try {
+      setDetailLoading(true);
+      const res = await apiClient.get(`/inventory/details?sessionId=${sessionId}`);
+      if (res.data.success) {
+        setDetailItems(res.data.data.map((item, index) => ({
+          key: index.toString(),
+          assetId: item.MaTaiSan,
+          name: item.TenThietBi,
+          sysCount: item.SoLuong,
+          scanCount: item.DaXacNhan ? item.SoLuong : 0,
+        })));
+      }
+    } catch (error) {
+      message.error('Lỗi khi lấy chi tiết kiểm kê');
+    } finally {
+      setDetailLoading(false);
+    }
+  };
 
   // Filter
   const filteredData = data.filter(item => 
@@ -82,34 +111,26 @@ const Inventory = () => {
   const showDetailModal = (record) => {
     setEditingItem(record);
     setIsDetailVisible(true);
+    fetchSessionDetails(record.key);
   };
 
   const handleCancel = () => {
     setIsModalVisible(false);
     setIsDetailVisible(false);
     setEditingItem(null);
+    setDetailItems([]);
   };
 
   const handleCreate = () => {
     form.validateFields().then(values => {
-      const newSession = {
-        key: Date.now().toString(),
-        ...values,
-        date: values.date.format('DD/MM/YYYY'),
-        status: 'Đang thực hiện',
-        systemTotal: 120, // Mock initial system count for that department
-        scannedTotal: 0,
-        missing: 0,
-      };
-      setData([newSession, ...data]);
-      toast.success('Tạo kỳ kiểm kê mới thành công!');
+      // Vì phase này ưu tiên Read, ta chỉ báo message và đóng modal
+      message.info('Chức năng tạo mới trên Web đang được nâng cấp, vui lòng dùng hệ thống cũ!');
       setIsModalVisible(false);
     });
   };
 
   const handleDelete = (key) => {
-    setData(data.filter(item => item.key !== key));
-    toast.success('Đã xóa kỳ kiểm kê');
+    message.info('Chức năng xóa trên Web đang được nâng cấp!');
   };
 
   const columns = [
@@ -121,7 +142,7 @@ const Inventory = () => {
     },
     { title: 'Tên kỳ kiểm kê', dataIndex: 'title', key: 'title' },
     { title: 'Ngày tạo', dataIndex: 'date', key: 'date' },
-    { title: 'Phòng ban / Kho', dataIndex: 'department', key: 'department' },
+    { title: 'Phòng ban / Người tạo', dataIndex: 'department', key: 'department' },
     { 
       title: 'Trạng thái', 
       dataIndex: 'status', 
@@ -138,18 +159,15 @@ const Inventory = () => {
       align: 'center',
       render: (_, record) => (
         <Space size="middle">
-          <Tooltip title="Xem chi tiết / Đồng bộ">
+          <Tooltip title="Xem chi tiết">
             <Button type="text" icon={<EyeOutlined />} onClick={() => showDetailModal(record)} style={{ color: '#1890ff' }} />
           </Tooltip>
-          <Popconfirm title="Xóa kỳ kiểm kê này?" onConfirm={() => handleDelete(record.key)} okText="Xóa" cancelText="Hủy" okButtonProps={{ danger: true }}>
-            <Button type="text" danger icon={<DeleteOutlined />} disabled={record.status === 'Hoàn thành'} />
-          </Popconfirm>
         </Space>
       ),
     },
   ];
 
-  // Mock Detailed items for the Detail Modal
+  // Detailed items for the Detail Modal
   const detailColumns = [
     { title: 'Mã tài sản', dataIndex: 'assetId', key: 'assetId' },
     { title: 'Tên tài sản', dataIndex: 'name', key: 'name' },
@@ -168,17 +186,12 @@ const Inventory = () => {
     }
   ];
 
-  const detailMockData = [
-    { key: '1', assetId: 'VTT010001C', name: 'Laptop Dell XPS 15', sysCount: 1, scanCount: 1 },
-    { key: '2', assetId: 'VTT010002C', name: 'Máy chiếu Panasonic', sysCount: 2, scanCount: 1 }, // Thiếu 1
-    { key: '3', assetId: 'VTT010003C', name: 'Bàn phím cơ Logitech', sysCount: 5, scanCount: 5 },
-  ];
-
   return (
     <div style={{ animation: 'fadeIn 0.5s ease-in-out' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
         <Title level={3} style={{ margin: 0 }}>Quản Lý Kiểm Kê Tài Sản</Title>
         <Space>
+          <Button onClick={fetchSessions} loading={loading}>Làm mới</Button>
           <Button type="primary" style={{ backgroundColor: '#13c2c2', borderColor: '#13c2c2' }} icon={<PlusOutlined />} onClick={showCreateModal}>
             Tạo kỳ kiểm kê
           </Button>
@@ -200,6 +213,7 @@ const Inventory = () => {
         <Table 
           columns={columns} 
           dataSource={filteredData} 
+          loading={loading}
           pagination={{ pageSize: 10 }} 
           size="middle"
         />
@@ -236,22 +250,13 @@ const Inventory = () => {
         </Form>
       </Modal>
 
-      {/* Modal Chi Tiết Kiểm Kê (Báo cáo chênh lệch) */}
+      {/* Modal Chi Tiết Kiểm Kê */}
       <Modal
         title={`Chi Tiết Kiểm Kê - ${editingItem?.code}`}
         open={isDetailVisible}
         onCancel={handleCancel}
         footer={[
-          <Button key="close" onClick={handleCancel}>Đóng</Button>,
-          <Button key="sync" type="primary" icon={<SyncOutlined />} onClick={() => toast.success('Đã đồng bộ dữ liệu từ thiết bị cầm tay!')}>
-            Đồng bộ từ Handheld
-          </Button>,
-          <Button key="complete" type="primary" style={{ backgroundColor: '#52c41a', borderColor: '#52c41a' }} onClick={() => {
-            toast.success('Đã chốt sổ kiểm kê!');
-            handleCancel();
-          }}>
-            Chốt Sổ Kỳ Này
-          </Button>
+          <Button key="close" onClick={handleCancel}>Đóng</Button>
         ]}
         width={900}
       >
@@ -285,7 +290,8 @@ const Inventory = () => {
             
             <Table 
               columns={detailColumns} 
-              dataSource={detailMockData} 
+              dataSource={detailItems} 
+              loading={detailLoading}
               pagination={false} 
               size="small"
               bordered
