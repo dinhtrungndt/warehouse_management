@@ -1,5 +1,5 @@
-import React from 'react';
-import { Row, Col, Card, Statistic, Table, Typography } from 'antd';
+import React, { useState, useEffect } from 'react';
+import { Row, Col, Card, Statistic, Table, Typography, message, Spin } from 'antd';
 import { Pie } from '@ant-design/plots';
 import {
   AppstoreOutlined,
@@ -7,19 +7,42 @@ import {
   WarningOutlined,
   SyncOutlined
 } from '@ant-design/icons';
+import apiClient from '../services/apiClient';
 
 const { Title } = Typography;
 
 const Dashboard = () => {
-  const data = [
-    { type: 'Đang rảnh', value: 45 },
-    { type: 'Đang sử dụng', value: 30 },
-    { type: 'Đang bảo trì', value: 15 },
-    { type: 'Hỏng hóc', value: 10 },
-  ];
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({
+    totalAssets: 0,
+    readyAssets: 0,
+    maintenanceAssets: 0,
+    warningAssets: 0,
+    statuses: [],
+    recentEvents: []
+  });
+
+  useEffect(() => {
+    fetchDashboardStats();
+  }, []);
+
+  const fetchDashboardStats = async () => {
+    try {
+      setLoading(true);
+      const res = await apiClient.get('/dashboard/stats');
+      if (res.data && res.data.success) {
+        setStats(res.data.data);
+      }
+    } catch (error) {
+      message.error('Không thể tải dữ liệu thống kê từ máy chủ.');
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const config = {
-    data,
+    data: stats.statuses,
     angleField: 'value',
     colorField: 'type',
     radius: 0.8,
@@ -42,6 +65,7 @@ const Dashboard = () => {
       title: 'STT',
       dataIndex: 'key',
       key: 'key',
+      render: (text, record, index) => index + 1
     },
     {
       title: 'Loại sự kiện',
@@ -49,7 +73,7 @@ const Dashboard = () => {
       key: 'type',
     },
     {
-      title: 'Vị trí',
+      title: 'Vị trí / Mã Phiếu',
       dataIndex: 'location',
       key: 'location',
     },
@@ -60,11 +84,13 @@ const Dashboard = () => {
     },
   ];
 
-  const tableData = [
-    { key: '1', type: 'Nhập kho', location: 'Kho A', time: '2026-07-30 08:00' },
-    { key: '2', type: 'Xuất kho', location: 'Kho B', time: '2026-07-30 08:15' },
-    { key: '3', type: 'Cảnh báo RFID', location: 'Cổng 1', time: '2026-07-30 09:10' },
-  ];
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+        <Spin size="large" tip="Đang tải dữ liệu..." />
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -75,7 +101,7 @@ const Dashboard = () => {
           <Card bordered={false} style={{ borderRadius: 8, boxShadow: '0 1px 2px -2px rgba(0,0,0,0.16), 0 3px 6px 0 rgba(0,0,0,0.12)' }}>
             <Statistic
               title="Tổng số thiết bị"
-              value={1128}
+              value={stats.totalAssets}
               prefix={<AppstoreOutlined style={{ color: '#1890ff' }} />}
             />
           </Card>
@@ -84,7 +110,7 @@ const Dashboard = () => {
           <Card bordered={false} style={{ borderRadius: 8, boxShadow: '0 1px 2px -2px rgba(0,0,0,0.16), 0 3px 6px 0 rgba(0,0,0,0.12)' }}>
             <Statistic
               title="Thiết bị sẵn sàng"
-              value={930}
+              value={stats.readyAssets}
               prefix={<CheckCircleOutlined style={{ color: '#52c41a' }} />}
             />
           </Card>
@@ -92,8 +118,8 @@ const Dashboard = () => {
         <Col xs={24} sm={12} lg={6}>
           <Card bordered={false} style={{ borderRadius: 8, boxShadow: '0 1px 2px -2px rgba(0,0,0,0.16), 0 3px 6px 0 rgba(0,0,0,0.12)' }}>
             <Statistic
-              title="Đang bảo trì"
-              value={112}
+              title="Đang bảo trì/Điều chuyển"
+              value={stats.maintenanceAssets}
               prefix={<SyncOutlined spin style={{ color: '#faad14' }} />}
             />
           </Card>
@@ -101,8 +127,8 @@ const Dashboard = () => {
         <Col xs={24} sm={12} lg={6}>
           <Card bordered={false} style={{ borderRadius: 8, boxShadow: '0 1px 2px -2px rgba(0,0,0,0.16), 0 3px 6px 0 rgba(0,0,0,0.12)' }}>
             <Statistic
-              title="Cần chú ý"
-              value={86}
+              title="Hỏng hóc/Cần chú ý"
+              value={stats.warningAssets}
               prefix={<WarningOutlined style={{ color: '#ff4d4f' }} />}
             />
           </Card>
@@ -112,12 +138,21 @@ const Dashboard = () => {
       <Row gutter={[16, 16]} style={{ marginTop: 24 }}>
         <Col xs={24} lg={12}>
           <Card title="Biểu đồ trạng thái thiết bị" bordered={false} style={{ borderRadius: 8, height: '100%' }}>
-            <Pie {...config} />
+            {stats.statuses.length > 0 ? (
+              <Pie {...config} />
+            ) : (
+              <div style={{ textAlign: 'center', padding: '20px' }}>Chưa có dữ liệu biểu đồ</div>
+            )}
           </Card>
         </Col>
         <Col xs={24} lg={12}>
           <Card title="Danh sách sự kiện gần đây" bordered={false} style={{ borderRadius: 8, height: '100%' }}>
-            <Table columns={columns} dataSource={tableData} pagination={false} />
+            <Table 
+              columns={columns} 
+              dataSource={stats.recentEvents} 
+              pagination={{ pageSize: 5 }} 
+              size="small"
+            />
           </Card>
         </Col>
       </Row>
