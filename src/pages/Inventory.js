@@ -61,9 +61,9 @@ const Inventory = () => {
           date: dayjs(item.NgayLapPhieu).format('DD/MM/YYYY'),
           department: item.NguoiKiemKe || 'Hệ thống',
           status: item.scannedItems >= item.totalItems && item.totalItems > 0 ? 'Hoàn thành' : 'Đang thực hiện',
-          systemTotal: item.totalItems,
-          scannedTotal: item.scannedItems,
-          missing: Math.max(0, item.totalItems - item.scannedItems),
+          systemTotal: item.totalItems || 0,
+          scannedTotal: item.scannedItems || 0,
+          missing: Math.max(0, (item.totalItems || 0) - (item.scannedItems || 0)),
         })));
       }
     } catch (error) {
@@ -82,8 +82,8 @@ const Inventory = () => {
           key: index.toString(),
           assetId: item.MaTaiSan,
           name: item.TenThietBi,
-          sysCount: item.SoLuong,
-          scanCount: item.DaXacNhan ? item.SoLuong : 0,
+          sysCount: item.SoLuongTon || 0,
+          scanCount: item.DaKiem ? (item.SoLuongKiemKe || 0) : 0,
         })));
       }
     } catch (error) {
