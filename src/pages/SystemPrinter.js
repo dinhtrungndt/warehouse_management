@@ -145,7 +145,7 @@ const SystemPrinter = () => {
         onCancel={handleCancel}
         okText="Lưu lại"
         cancelText="Hủy"
-        destroyOnClose
+        destroyOnHidden
       >
         <Form form={form} layout="vertical" style={{ marginTop: 24 }}>
           <Form.Item name="name" label="Tên máy in / Vị trí" rules={[{ required: true }]}>

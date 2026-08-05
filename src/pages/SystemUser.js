@@ -159,7 +159,7 @@ const SystemUser = () => {
         onCancel={handleCancel}
         okText="Lưu lại"
         cancelText="Hủy"
-        destroyOnClose
+        destroyOnHidden
       >
         <Form form={form} layout="vertical" style={{ marginTop: 24 }}>
           <Form.Item name="username" label="Tên đăng nhập" rules={[{ required: true }]}>

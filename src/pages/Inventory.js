@@ -122,15 +122,26 @@ const Inventory = () => {
   };
 
   const handleCreate = () => {
-    form.validateFields().then(values => {
-      // Vì phase này ưu tiên Read, ta chỉ báo message và đóng modal
-      message.info('Chức năng tạo mới trên Web đang được nâng cấp, vui lòng dùng hệ thống cũ!');
-      setIsModalVisible(false);
+    form.validateFields().then(async values => {
+      try {
+        await apiClient.post('/inventory/sessions', values);
+        message.success('Tạo kỳ kiểm kê thành công');
+        setIsModalVisible(false);
+        fetchSessions();
+      } catch (error) {
+        message.error('Lỗi khi tạo kỳ kiểm kê');
+      }
     });
   };
 
-  const handleDelete = (key) => {
-    message.info('Chức năng xóa trên Web đang được nâng cấp!');
+  const handleDelete = async (key) => {
+    try {
+      await apiClient.delete('/inventory/sessions/' + key);
+      message.success('Xóa kỳ kiểm kê thành công');
+      fetchSessions();
+    } catch (error) {
+      message.error('Lỗi khi xóa kỳ kiểm kê');
+    }
   };
 
   const columns = [
@@ -213,6 +224,7 @@ const Inventory = () => {
         <Table 
           columns={columns} 
           dataSource={filteredData} 
+          rowKey="keyId"
           loading={loading}
           pagination={{ pageSize: 10 }} 
           size="middle"
@@ -291,6 +303,7 @@ const Inventory = () => {
             <Table 
               columns={detailColumns} 
               dataSource={detailItems} 
+              rowKey="keyId"
               loading={detailLoading}
               pagination={false} 
               size="small"

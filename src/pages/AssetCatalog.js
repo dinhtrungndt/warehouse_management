@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import apiClient from '../services/apiClient';
 import {
   Table,
   Button,
@@ -27,26 +28,27 @@ import toast from 'react-hot-toast';
 
 const { Option } = Select;
 
-const generateMockData = () => {
-  const data = [];
-  for (let i = 1; i <= 45; i++) {
-    data.push({
-      key: i.toString(),
-      id: `VTT${i.toString().padStart(6, '0')}C`,
-      name: i % 3 === 0 ? `Máy tính bàn Dell Optiplex 5070` : (i % 2 === 0 ? `Bình Thủy Điện Panasonic` : `Gas heater, Display module`),
-      category: i % 3 === 0 ? 'Tài sản' : 'Vật tư',
-      rfid: `E280117000000213CEEE${i.toString().padStart(4, '0')}`,
-      unit: 'Cái',
-      quantity: Math.floor(Math.random() * 20) + 1,
-      location: i % 2 === 0 ? 'Kho vật tư BR' : 'Phòng TCKT',
-      status: i % 5 === 0 ? 'inactive' : 'active',
-    });
-  }
-  return data;
-};
+// Removed mock data generator
 
 const AssetCatalog = () => {
-  const [data, setData] = useState(generateMockData());
+  const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const res = await apiClient.get('/assets');
+      setData(res.data.data);
+    } catch (error) {
+      toast.error('Lỗi tải dữ liệu tài sản');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
   const [searchText, setSearchText] = useState('');
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
@@ -59,9 +61,9 @@ const AssetCatalog = () => {
 
   // Filtered Data
   const filteredData = data.filter(item =>
-    item.name.toLowerCase().includes(searchText.toLowerCase()) ||
-    item.id.toLowerCase().includes(searchText.toLowerCase()) ||
-    item.rfid.toLowerCase().includes(searchText.toLowerCase())
+    (item.name || '').toLowerCase().includes(searchText.toLowerCase()) ||
+    (item.id || '').toLowerCase().includes(searchText.toLowerCase()) ||
+    (item.rfid || '').toLowerCase().includes(searchText.toLowerCase())
   );
 
   // Handle Modal Open
@@ -84,37 +86,35 @@ const AssetCatalog = () => {
 
   // Handle Form Submit
   const handleOk = () => {
-    form.validateFields().then(values => {
-      if (editingItem) {
-        // Edit existing
-        const newData = [...data];
-        const index = newData.findIndex(item => editingItem.key === item.key);
-        if (index > -1) {
-          newData[index] = { ...newData[index], ...values };
-          setData(newData);
+    form.validateFields().then(async values => {
+      try {
+        if (editingItem) {
+          await apiClient.put('/assets/' + editingItem.keyId, values);
           toast.success('Cập nhật tài sản thành công!');
+        } else {
+          await apiClient.post('/assets', values);
+          toast.success('Thêm mới tài sản thành công!');
         }
-      } else {
-        // Add new
-        const newAsset = {
-          key: (data.length + 1).toString(),
-          ...values,
-        };
-        setData([newAsset, ...data]);
-        toast.success('Thêm mới tài sản thành công!');
+        setIsModalVisible(false);
+        form.resetFields();
+        fetchData();
+      } catch (error) {
+        toast.error('Có lỗi xảy ra!');
       }
-      setIsModalVisible(false);
-      form.resetFields();
     }).catch(info => {
       console.log('Validate Failed:', info);
     });
   };
 
   // Handle Delete
-  const handleDelete = (key) => {
-    const newData = data.filter(item => item.key !== key);
-    setData(newData);
-    toast.success('Đã xóa tài sản khỏi danh mục');
+  const handleDelete = async (record) => {
+    try {
+      await apiClient.delete('/assets/' + record.keyId);
+      toast.success('Đã xóa tài sản khỏi danh mục');
+      fetchData();
+    } catch(error) {
+      toast.error('Lỗi khi xóa');
+    }
   };
 
   const columns = [
@@ -154,6 +154,7 @@ const AssetCatalog = () => {
       dataIndex: 'unit',
       key: 'unit',
       width: 80,
+      render: text => text || 'Cái',
     },
     {
       title: 'SL',
@@ -167,6 +168,7 @@ const AssetCatalog = () => {
       dataIndex: 'location',
       key: 'location',
       width: 150,
+      render: text => text || 'Kho vật tư BR',
     },
     {
       title: 'Trạng thái',
@@ -206,7 +208,7 @@ const AssetCatalog = () => {
                   okText: 'Xóa',
                   okType: 'danger',
                   cancelText: 'Hủy',
-                  onOk: () => handleDelete(record.key)
+                  onOk: () => handleDelete(record)
                 });
               }}
             />
@@ -243,16 +245,17 @@ const AssetCatalog = () => {
             allowClear
             size="large"
           />
-          <Button size="large" icon={<ReloadOutlined />} onClick={() => { setSearchText(''); toast.success('Đã làm mới dữ liệu'); }}>
+          <Button size="large" icon={<ReloadOutlined />} onClick={() => { setSearchText(''); fetchData(); toast.success('Đã làm mới dữ liệu'); }}>
             Làm mới
           </Button>
         </div>
 
-        <Table
-          columns={columns}
-          dataSource={filteredData}
-          pagination={{
-            pageSize: 10,
+        <Table 
+          columns={columns} 
+          dataSource={filteredData} 
+          rowKey="keyId"
+          pagination={{ 
+            pageSize: 10, 
             showSizeChanger: true,
             showTotal: (total, range) => `${range[0]}-${range[1]} của ${total} tài sản`
           }}
@@ -274,7 +277,7 @@ const AssetCatalog = () => {
         width={800}
         okText="Lưu"
         cancelText="Hủy"
-        destroyOnClose
+        destroyOnHidden
       >
         <Form form={form} layout="vertical" style={{ marginTop: 24 }}>
           <Row gutter={16}>

@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import apiClient from '../services/apiClient';
 import { 
   Table, 
   Button, 
@@ -20,23 +21,27 @@ import {
 } from '@ant-design/icons';
 import toast from 'react-hot-toast';
 
-// Mock data generator for Departments
-const generateMockData = () => {
-  return [
-    { key: '1', code: '5-01', name: '5-01 - Phòng TCKT', notes: '', isActive: true },
-    { key: '2', code: '5-02', name: '5-02 - Phòng TCHC', notes: '', isActive: true },
-    { key: '3', code: '5-03', name: '5-03 - Phòng KTSX', notes: '', isActive: true },
-    { key: '4', code: '5-04', name: '5-04 - Phòng ATMT', notes: '', isActive: true },
-    { key: '5', code: '5-05', name: '5-05 - BDSC', notes: '', isActive: true },
-    { key: '6', code: '5-06', name: '5-06 - Trạm Bà Rịa', notes: '', isActive: true },
-    { key: '7', code: '5-07', name: '5-07 - Vận hành Phú Mỹ', notes: '', isActive: true },
-    { key: '8', code: '5-08', name: '5-08 - PCCC Bà Rịa', notes: '', isActive: false },
-    { key: '9', code: 'KhoBR', name: 'Kho vật tư BR', notes: 'Kho chính', isActive: true },
-  ];
-};
+// Removed mock data generator
 
 const DepartmentCatalog = () => {
-  const [data, setData] = useState(generateMockData());
+  const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const res = await apiClient.get('/departments');
+      setData(res.data.data);
+    } catch (error) {
+      toast.error('Lỗi tải dữ liệu phòng ban');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
   const [searchText, setSearchText] = useState('');
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
@@ -49,8 +54,8 @@ const DepartmentCatalog = () => {
 
   // Filtered Data
   const filteredData = data.filter(item => 
-    item.name.toLowerCase().includes(searchText.toLowerCase()) ||
-    item.code.toLowerCase().includes(searchText.toLowerCase())
+    (item.name || '').toLowerCase().includes(searchText.toLowerCase()) ||
+    (item.code || '').toLowerCase().includes(searchText.toLowerCase())
   );
 
   // Handle Modal Open
@@ -74,37 +79,45 @@ const DepartmentCatalog = () => {
 
   // Handle Form Submit
   const handleOk = () => {
-    form.validateFields().then(values => {
-      if (editingItem) {
-        // Edit existing
-        const newData = [...data];
-        const index = newData.findIndex(item => editingItem.key === item.key);
-        if (index > -1) {
-          newData[index] = { ...newData[index], ...values };
-          setData(newData);
+    form.validateFields().then(async values => {
+      try {
+        if (editingItem) {
+          await apiClient.put('/departments/' + editingItem.keyId, {
+            code: values.code,
+            name: values.name,
+            manager: values.notes, // using notes for manager in frontend mapped to manager in backend
+            status: values.isActive ? 'active' : 'inactive'
+          });
           toast.success('Cập nhật phòng ban/kho thành công!');
+        } else {
+          await apiClient.post('/departments', {
+            id: values.code,
+            name: values.name,
+            manager: values.notes,
+            status: values.isActive ? 'active' : 'inactive'
+          });
+          toast.success('Thêm mới phòng ban/kho thành công!');
         }
-      } else {
-        // Add new
-        const newDept = {
-          key: Date.now().toString(),
-          ...values,
-        };
-        setData([newDept, ...data]);
-        toast.success('Thêm mới phòng ban/kho thành công!');
+        setIsModalVisible(false);
+        form.resetFields();
+        fetchData();
+      } catch (error) {
+        toast.error('Có lỗi xảy ra!');
       }
-      setIsModalVisible(false);
-      form.resetFields();
     }).catch(info => {
       console.log('Validate Failed:', info);
     });
   };
 
   // Handle Delete
-  const handleDelete = (key) => {
-    const newData = data.filter(item => item.key !== key);
-    setData(newData);
-    toast.success('Đã xóa dữ liệu thành công');
+  const handleDelete = async (record) => {
+    try {
+      await apiClient.delete('/departments/' + record.keyId);
+      toast.success('Đã xóa dữ liệu thành công');
+      fetchData();
+    } catch(error) {
+      toast.error('Lỗi khi xóa');
+    }
   };
 
   const columns = [
@@ -121,23 +134,26 @@ const DepartmentCatalog = () => {
       key: 'name',
     },
     {
-      title: 'Ghi chú',
-      dataIndex: 'notes',
-      key: 'notes',
+      title: 'Trưởng phòng / Ghi chú',
+      dataIndex: 'manager',
+      key: 'manager',
     },
     {
       title: 'Trạng thái',
       key: 'isActive',
       dataIndex: 'isActive',
       width: 150,
-      render: isActive => (
+      render: (text, record) => {
+        const isActive = record.status === 'active';
+        return (
         <Switch 
           checked={isActive} 
           checkedChildren="Hoạt động" 
           unCheckedChildren="Tạm ngưng"
           disabled
         />
-      ),
+        );
+      },
     },
     {
       title: 'Thao tác',
@@ -166,7 +182,7 @@ const DepartmentCatalog = () => {
                   okText: 'Xóa',
                   okType: 'danger',
                   cancelText: 'Hủy',
-                  onOk: () => handleDelete(record.key)
+                  onOk: () => handleDelete(record)
                 });
               }} 
             />
@@ -198,7 +214,7 @@ const DepartmentCatalog = () => {
             size="large"
             value={searchText}
           />
-          <Button size="large" icon={<ReloadOutlined />} onClick={() => { setSearchText(''); toast.success('Đã làm mới dữ liệu'); }}>
+          <Button size="large" icon={<ReloadOutlined />} onClick={() => { setSearchText(''); fetchData(); toast.success('Đã làm mới dữ liệu'); }}>
             Làm mới
           </Button>
         </div>
@@ -206,6 +222,7 @@ const DepartmentCatalog = () => {
         <Table 
           columns={columns} 
           dataSource={filteredData} 
+          rowKey="keyId"
           pagination={{ 
             pageSize: 10, 
             showSizeChanger: true, 
@@ -222,7 +239,7 @@ const DepartmentCatalog = () => {
         onCancel={handleCancel}
         okText="Lưu Dữ Liệu"
         cancelText="Hủy Bỏ"
-        destroyOnClose
+        destroyOnHidden
       >
         <Form form={form} layout="vertical" style={{ marginTop: 24 }}>
           <Form.Item name="code" label="Mã Phòng Ban / Kho" rules={[{ required: true, message: 'Vui lòng nhập mã!' }]}>
