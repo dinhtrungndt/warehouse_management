@@ -131,7 +131,7 @@ const SystemPrinter = () => {
         </Button>
       </div>
 
-      <Card bordered={false} style={{ borderRadius: 8, boxShadow: '0 1px 2px 0 rgba(0,0,0,0.03)' }}>
+      <Card variant="borderless" style={{ borderRadius: 8, boxShadow: '0 1px 2px 0 rgba(0,0,0,0.03)' }}>
         <Typography.Paragraph type="secondary" style={{ marginBottom: 20 }}>
           Quản lý danh sách các máy in mã vạch / in thẻ RFID qua giao thức mạng LAN/Wifi (ZPL TCP/IP).
         </Typography.Paragraph>
@@ -167,3 +167,4 @@ const SystemPrinter = () => {
 };
 
 export default SystemPrinter;
+

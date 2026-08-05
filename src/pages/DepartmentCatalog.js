@@ -187,7 +187,7 @@ const DepartmentCatalog = () => {
         </Space>
       </div>
 
-      <Card bordered={false} style={{ borderRadius: 8, boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03), 0 1px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px 0 rgba(0, 0, 0, 0.02)' }}>
+      <Card variant="borderless" style={{ borderRadius: 8, boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03), 0 1px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px 0 rgba(0, 0, 0, 0.02)' }}>
         <div style={{ marginBottom: 16, display: 'flex', gap: 16 }}>
           <Input 
             placeholder="Tìm kiếm theo mã, tên phòng ban..." 
@@ -244,3 +244,4 @@ const DepartmentCatalog = () => {
 };
 
 export default DepartmentCatalog;
+

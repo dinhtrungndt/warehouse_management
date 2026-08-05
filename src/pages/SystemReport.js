@@ -89,22 +89,22 @@ const SystemReport = () => {
 
       <Row gutter={16} style={{ marginBottom: 24 }}>
         <Col span={6}>
-          <Card bordered={false} style={{ borderRadius: 8, boxShadow: '0 1px 2px 0 rgba(0,0,0,0.03)' }}>
+          <Card variant="borderless" style={{ borderRadius: 8, boxShadow: '0 1px 2px 0 rgba(0,0,0,0.03)' }}>
             <Statistic title="Tổng Số Tài Sản (Web)" value={500} suffix="cái" valueStyle={{ color: '#1890ff', fontWeight: 'bold' }} />
           </Card>
         </Col>
         <Col span={6}>
-          <Card bordered={false} style={{ borderRadius: 8, boxShadow: '0 1px 2px 0 rgba(0,0,0,0.03)' }}>
+          <Card variant="borderless" style={{ borderRadius: 8, boxShadow: '0 1px 2px 0 rgba(0,0,0,0.03)' }}>
             <Statistic title="Đã Gắn Thẻ RFID" value={420} suffix="cái" valueStyle={{ color: '#52c41a', fontWeight: 'bold' }} />
           </Card>
         </Col>
         <Col span={6}>
-          <Card bordered={false} style={{ borderRadius: 8, boxShadow: '0 1px 2px 0 rgba(0,0,0,0.03)' }}>
+          <Card variant="borderless" style={{ borderRadius: 8, boxShadow: '0 1px 2px 0 rgba(0,0,0,0.03)' }}>
             <Statistic title="Tổng Phiếu Nhập Tháng Này" value={14} valueStyle={{ color: '#faad14', fontWeight: 'bold' }} />
           </Card>
         </Col>
         <Col span={6}>
-          <Card bordered={false} style={{ borderRadius: 8, boxShadow: '0 1px 2px 0 rgba(0,0,0,0.03)' }}>
+          <Card variant="borderless" style={{ borderRadius: 8, boxShadow: '0 1px 2px 0 rgba(0,0,0,0.03)' }}>
             <Statistic title="Tổng Phiếu Xuất Tháng Này" value={22} valueStyle={{ color: '#f5222d', fontWeight: 'bold' }} />
           </Card>
         </Col>
@@ -112,12 +112,12 @@ const SystemReport = () => {
 
       <Row gutter={24} style={{ marginBottom: 24 }}>
         <Col span={12}>
-          <Card title="Cơ cấu theo phân loại" bordered={false} style={{ borderRadius: 8, boxShadow: '0 1px 2px 0 rgba(0,0,0,0.03)' }}>
+          <Card title="Cơ cấu theo phân loại" variant="borderless" style={{ borderRadius: 8, boxShadow: '0 1px 2px 0 rgba(0,0,0,0.03)' }}>
             <Pie {...pieConfig} />
           </Card>
         </Col>
         <Col span={12}>
-          <Card title="Biểu đồ Nhập - Xuất theo tháng" bordered={false} style={{ borderRadius: 8, boxShadow: '0 1px 2px 0 rgba(0,0,0,0.03)' }}>
+          <Card title="Biểu đồ Nhập - Xuất theo tháng" variant="borderless" style={{ borderRadius: 8, boxShadow: '0 1px 2px 0 rgba(0,0,0,0.03)' }}>
             <Column {...columnConfig} />
           </Card>
         </Col>
@@ -125,7 +125,7 @@ const SystemReport = () => {
 
       <Card 
         title={<><BarChartOutlined /> Biến động giao dịch gần đây</>} 
-        bordered={false} 
+        variant="borderless" 
         style={{ borderRadius: 8, boxShadow: '0 1px 2px 0 rgba(0,0,0,0.03)' }}
         extra={
           <Space>
@@ -141,3 +141,4 @@ const SystemReport = () => {
 };
 
 export default SystemReport;
+

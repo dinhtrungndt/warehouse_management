@@ -135,7 +135,7 @@ const RFIDIssue = () => {
         <Col span={16}>
           <Card 
             title="Danh sách tài sản (Chưa có RFID)" 
-            bordered={false} 
+            variant="borderless" 
             style={{ borderRadius: 8, boxShadow: '0 1px 2px 0 rgba(0,0,0,0.03)' }}
           >
             <div style={{ marginBottom: 16 }}>
@@ -161,7 +161,7 @@ const RFIDIssue = () => {
         <Col span={8}>
           <Card 
             title="Khu Vực Gán Thẻ" 
-            bordered={false} 
+            variant="borderless" 
             style={{ borderRadius: 8, boxShadow: '0 1px 2px 0 rgba(0,0,0,0.03)', height: '100%' }}
           >
             {!selectedAsset ? (
@@ -234,3 +234,4 @@ const RFIDIssue = () => {
 };
 
 export default RFIDIssue;
+

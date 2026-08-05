@@ -87,7 +87,7 @@ const Dashboard = () => {
   if (loading) {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-        <Spin size="large" tip="Đang tải dữ liệu..." />
+        <Spin size="large" description="Đang tải dữ liệu..." />
       </div>
     );
   }
@@ -98,7 +98,7 @@ const Dashboard = () => {
 
       <Row gutter={[16, 16]}>
         <Col xs={24} sm={12} lg={6}>
-          <Card bordered={false} style={{ borderRadius: 8, boxShadow: '0 1px 2px -2px rgba(0,0,0,0.16), 0 3px 6px 0 rgba(0,0,0,0.12)' }}>
+          <Card variant="borderless" style={{ borderRadius: 8, boxShadow: '0 1px 2px -2px rgba(0,0,0,0.16), 0 3px 6px 0 rgba(0,0,0,0.12)' }}>
             <Statistic
               title="Tổng số thiết bị"
               value={stats.totalAssets}
@@ -107,7 +107,7 @@ const Dashboard = () => {
           </Card>
         </Col>
         <Col xs={24} sm={12} lg={6}>
-          <Card bordered={false} style={{ borderRadius: 8, boxShadow: '0 1px 2px -2px rgba(0,0,0,0.16), 0 3px 6px 0 rgba(0,0,0,0.12)' }}>
+          <Card variant="borderless" style={{ borderRadius: 8, boxShadow: '0 1px 2px -2px rgba(0,0,0,0.16), 0 3px 6px 0 rgba(0,0,0,0.12)' }}>
             <Statistic
               title="Thiết bị sẵn sàng"
               value={stats.readyAssets}
@@ -116,7 +116,7 @@ const Dashboard = () => {
           </Card>
         </Col>
         <Col xs={24} sm={12} lg={6}>
-          <Card bordered={false} style={{ borderRadius: 8, boxShadow: '0 1px 2px -2px rgba(0,0,0,0.16), 0 3px 6px 0 rgba(0,0,0,0.12)' }}>
+          <Card variant="borderless" style={{ borderRadius: 8, boxShadow: '0 1px 2px -2px rgba(0,0,0,0.16), 0 3px 6px 0 rgba(0,0,0,0.12)' }}>
             <Statistic
               title="Đang bảo trì/Điều chuyển"
               value={stats.maintenanceAssets}
@@ -125,7 +125,7 @@ const Dashboard = () => {
           </Card>
         </Col>
         <Col xs={24} sm={12} lg={6}>
-          <Card bordered={false} style={{ borderRadius: 8, boxShadow: '0 1px 2px -2px rgba(0,0,0,0.16), 0 3px 6px 0 rgba(0,0,0,0.12)' }}>
+          <Card variant="borderless" style={{ borderRadius: 8, boxShadow: '0 1px 2px -2px rgba(0,0,0,0.16), 0 3px 6px 0 rgba(0,0,0,0.12)' }}>
             <Statistic
               title="Hỏng hóc/Cần chú ý"
               value={stats.warningAssets}
@@ -137,7 +137,7 @@ const Dashboard = () => {
 
       <Row gutter={[16, 16]} style={{ marginTop: 24 }}>
         <Col xs={24} lg={12}>
-          <Card title="Biểu đồ trạng thái thiết bị" bordered={false} style={{ borderRadius: 8, height: '100%' }}>
+          <Card title="Biểu đồ trạng thái thiết bị" variant="borderless" style={{ borderRadius: 8, height: '100%' }}>
             {stats.statuses.length > 0 ? (
               <Pie {...config} />
             ) : (
@@ -146,11 +146,11 @@ const Dashboard = () => {
           </Card>
         </Col>
         <Col xs={24} lg={12}>
-          <Card title="Danh sách sự kiện gần đây" bordered={false} style={{ borderRadius: 8, height: '100%' }}>
-            <Table 
-              columns={columns} 
-              dataSource={stats.recentEvents} 
-              pagination={{ pageSize: 5 }} 
+          <Card title="Danh sách sự kiện gần đây" variant="borderless" style={{ borderRadius: 8, height: '100%' }}>
+            <Table
+              columns={columns}
+              dataSource={stats.recentEvents}
+              pagination={{ pageSize: 5 }}
               size="small"
             />
           </Card>
@@ -161,3 +161,4 @@ const Dashboard = () => {
 };
 
 export default Dashboard;
+
