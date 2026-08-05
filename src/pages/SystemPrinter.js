@@ -167,4 +167,3 @@ const SystemPrinter = () => {
 };
 
 export default SystemPrinter;
-

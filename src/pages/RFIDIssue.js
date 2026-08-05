@@ -234,4 +234,3 @@ const RFIDIssue = () => {
 };
 
 export default RFIDIssue;
-

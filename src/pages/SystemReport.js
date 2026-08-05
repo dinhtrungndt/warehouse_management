@@ -141,4 +141,3 @@ const SystemReport = () => {
 };
 
 export default SystemReport;
-

@@ -354,4 +354,3 @@ const AssetCatalog = () => {
 };
 
 export default AssetCatalog;
-

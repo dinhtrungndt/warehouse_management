@@ -180,4 +180,3 @@ const RFIDPrint = () => {
 };
 
 export default RFIDPrint;
-

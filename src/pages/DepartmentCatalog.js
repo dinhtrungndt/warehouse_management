@@ -244,4 +244,3 @@ const DepartmentCatalog = () => {
 };
 
 export default DepartmentCatalog;
-

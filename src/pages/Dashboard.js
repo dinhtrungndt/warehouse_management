@@ -147,10 +147,10 @@ const Dashboard = () => {
         </Col>
         <Col xs={24} lg={12}>
           <Card title="Danh sách sự kiện gần đây" variant="borderless" style={{ borderRadius: 8, height: '100%' }}>
-            <Table
-              columns={columns}
-              dataSource={stats.recentEvents}
-              pagination={{ pageSize: 5 }}
+            <Table 
+              columns={columns} 
+              dataSource={stats.recentEvents} 
+              pagination={{ pageSize: 5 }} 
               size="small"
             />
           </Card>
@@ -161,4 +161,3 @@ const Dashboard = () => {
 };
 
 export default Dashboard;
-

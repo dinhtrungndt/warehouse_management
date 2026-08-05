@@ -202,4 +202,3 @@ const SystemUser = () => {
 };
 
 export default SystemUser;
-
