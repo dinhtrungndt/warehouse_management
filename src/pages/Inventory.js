@@ -76,7 +76,7 @@ const Inventory = () => {
   const fetchSessionDetails = async (sessionId) => {
     try {
       setDetailLoading(true);
-      const res = await apiClient.get(`/inventory/details?sessionId=${sessionId}`);
+      const res = await apiClient.get(`/inventory?sessionId=${sessionId}`);
       if (res.data.success) {
         setDetailItems(res.data.data.map((item, index) => ({
           key: index.toString(),
