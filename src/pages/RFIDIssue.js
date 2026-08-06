@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import apiClient from '../services/apiClient';
 import { 
   Table, 
   Button, 
   Input, 
-  Space, 
   Card, 
   Typography,
   Tag,
@@ -20,35 +20,39 @@ import {
 } from '@ant-design/icons';
 import toast from 'react-hot-toast';
 
-const { Title, Text } = Typography;
-
-// Mock Data for Assets that need RFID Issuance
-const generateUnissuedAssets = () => {
-  const data = [];
-  for (let i = 1; i <= 8; i++) {
-    data.push({
-      key: i.toString(),
-      assetId: `VTT010${i.toString().padStart(3, '0')}C`,
-      name: i % 2 === 0 ? 'Laptop Dell Vostro 3510' : 'Máy In Laser HP',
-      department: i % 3 === 0 ? 'Phòng TCKT' : 'Kho vật tư BR',
-      status: 'Chưa gắn Tag',
-      currentTag: '', // Empty initially
-    });
-  }
-  return data;
-};
+const { Title } = Typography;
 
 const RFIDIssue = () => {
-  const [data, setData] = useState(generateUnissuedAssets());
+  const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(false);
   const [searchText, setSearchText] = useState('');
   const [selectedAsset, setSelectedAsset] = useState(null);
   const [rfidForm] = Form.useForm();
   const [isScanning, setIsScanning] = useState(false);
+  
+  useEffect(() => {
+    fetchData();
+  }, []);
 
-  // Filter
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const res = await apiClient.get('/assets');
+      if (res.data.success) {
+        // Filter assets that don't have RFID tag
+        const unissuedAssets = res.data.data.filter(item => !item.rfid);
+        setData(unissuedAssets);
+      }
+    } catch (error) {
+      toast.error('Lỗi tải dữ liệu tài sản');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const filteredData = data.filter(item => 
-    item.assetId.toLowerCase().includes(searchText.toLowerCase()) ||
-    item.name.toLowerCase().includes(searchText.toLowerCase())
+    (item.id || '').toLowerCase().includes(searchText.toLowerCase()) ||
+    (item.name || '').toLowerCase().includes(searchText.toLowerCase())
   );
 
   const handleSelectAsset = (record) => {
@@ -73,37 +77,40 @@ const RFIDIssue = () => {
     }, 1500);
   };
 
-  const handleIssueTag = () => {
-    rfidForm.validateFields().then(values => {
-      const { rfidTag } = values;
+  const handleSaveRFID = async () => {
+    try {
+      const values = await rfidForm.validateFields();
+      if (!selectedAsset) return;
+
+      const payload = {
+        ...selectedAsset,
+        rfid: values.rfidTag
+      };
+
+      await apiClient.put(`/assets/${selectedAsset.keyId}`, payload);
       
-      // Update data array
-      const newData = data.map(item => {
-        if (item.key === selectedAsset.key) {
-          return { ...item, status: 'Đã gắn Tag', currentTag: rfidTag };
-        }
-        return item;
-      });
-      
-      setData(newData);
+      toast.success('Đã gắn mã RFID thành công!');
       setSelectedAsset(null);
       rfidForm.resetFields();
-      toast.success('Phát hành mã RFID cho tài sản thành công!');
-    });
+      fetchData();
+    } catch (error) {
+      if (error.response) {
+        toast.error(error.response?.data?.error || 'Có lỗi xảy ra khi lưu RFID!');
+      } else {
+        toast.error('Vui lòng nhập hoặc quét mã RFID');
+      }
+    }
   };
 
   const columns = [
-    { title: 'Mã tài sản', dataIndex: 'assetId', key: 'assetId' },
+    { title: 'Mã tài sản', dataIndex: 'id', key: 'id', render: text => <span style={{ fontWeight: 'bold' }}>{text}</span> },
     { title: 'Tên tài sản / Thiết bị', dataIndex: 'name', key: 'name', ellipsis: true },
-    { title: 'Vị trí', dataIndex: 'department', key: 'department' },
+    { title: 'Vị trí', dataIndex: 'location', key: 'location', render: text => text || 'Kho vật tư BR' },
     { 
       title: 'Trạng thái', 
-      dataIndex: 'status', 
       key: 'status',
-      render: status => (
-        <Tag color={status === 'Chưa gắn Tag' ? 'default' : 'success'}>
-          {status}
-        </Tag>
+      render: () => (
+        <Tag color="warning">Chưa có Tag</Tag>
       )
     },
     {
@@ -112,11 +119,9 @@ const RFIDIssue = () => {
       align: 'center',
       render: (_, record) => (
         <Button 
-          type="primary" 
-          ghost 
+          type={selectedAsset?.keyId === record.keyId ? "primary" : "default"}
           size="small"
           onClick={() => handleSelectAsset(record)}
-          disabled={record.status === 'Đã gắn Tag'}
         >
           Chọn
         </Button>
@@ -151,6 +156,8 @@ const RFIDIssue = () => {
             <Table 
               columns={columns} 
               dataSource={filteredData} 
+              rowKey="keyId"
+              loading={loading}
               pagination={{ pageSize: 8 }} 
               size="small"
             />
@@ -166,7 +173,7 @@ const RFIDIssue = () => {
           >
             {!selectedAsset ? (
               <Alert 
-                message="Chưa chọn tài sản" 
+                title="Chưa chọn tài sản" 
                 description="Vui lòng nhấn nút Chọn ở danh sách bên trái để tiến hành gán thẻ RFID." 
                 type="info" 
                 showIcon 
@@ -174,8 +181,8 @@ const RFIDIssue = () => {
             ) : (
               <div>
                 <Alert 
-                  message={`Đang thao tác: ${selectedAsset.name}`} 
-                  description={`Mã TS: ${selectedAsset.assetId}`} 
+                  title={`Đang thao tác: ${selectedAsset.name}`} 
+                  description={`Mã TS: ${selectedAsset.id}`} 
                   type="success" 
                   showIcon 
                   style={{ marginBottom: 24 }}
@@ -211,7 +218,7 @@ const RFIDIssue = () => {
                       size="large" 
                       icon={<SaveOutlined />} 
                       style={{ width: '100%', backgroundColor: '#52c41a', borderColor: '#52c41a' }}
-                      onClick={handleIssueTag}
+                      onClick={handleSaveRFID}
                     >
                       Lưu / Gán Thẻ Hệ Thống
                     </Button>

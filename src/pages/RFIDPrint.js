@@ -1,4 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
+import apiClient from '../services/apiClient';
 import { 
   Table, 
   Button, 
@@ -25,31 +27,36 @@ import toast from 'react-hot-toast';
 const { Title, Text } = Typography;
 const { Option } = Select;
 
-const generateAssets = () => {
-  const data = [];
-  for (let i = 1; i <= 10; i++) {
-    data.push({
-      key: i.toString(),
-      assetId: `VTT010${i.toString().padStart(3, '0')}C`,
-      name: i % 2 === 0 ? 'Laptop Dell Vostro 3510' : 'Bơm thủy lực',
-      department: i % 3 === 0 ? 'Phòng TCKT' : 'Kho vật tư BR',
-      hasRFID: i % 4 !== 0,
-      rfidTag: i % 4 !== 0 ? `E2801170000000000000${i.toString().padStart(4, '0')}` : '',
-    });
-  }
-  return data;
-};
-
 const RFIDPrint = () => {
-  const [data] = useState(generateAssets());
+  const location = useLocation();
+  const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(false);
   const [searchText, setSearchText] = useState('');
-  const [selectedRowKeys, setSelectedRowKeys] = useState([]);
+  const [selectedRowKeys, setSelectedRowKeys] = useState(location.state?.selectedRowKeys || []);
   const [isPrinting, setIsPrinting] = useState(false);
   const [form] = Form.useForm();
 
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const res = await apiClient.get('/assets');
+      if (res.data.success) {
+        setData(res.data.data);
+      }
+    } catch (error) {
+      toast.error('Lỗi tải dữ liệu tài sản');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const filteredData = data.filter(item => 
-    item.assetId.toLowerCase().includes(searchText.toLowerCase()) ||
-    item.name.toLowerCase().includes(searchText.toLowerCase())
+    (item.id || '').toLowerCase().includes(searchText.toLowerCase()) ||
+    (item.name || '').toLowerCase().includes(searchText.toLowerCase())
   );
 
   const handlePrint = () => {
@@ -60,26 +67,27 @@ const RFIDPrint = () => {
 
     form.validateFields().then(values => {
       setIsPrinting(true);
-      toast.loading(`Đang gửi lệnh in ${selectedRowKeys.length} tem đến máy in ${values.printer}...`, { id: 'printing' });
       
       setTimeout(() => {
         setIsPrinting(false);
-        toast.success(`Đã in thành công ${selectedRowKeys.length} tem!`, { id: 'printing' });
-        setSelectedRowKeys([]);
-      }, 2000);
+        document.body.classList.add('printing-labels');
+        window.print();
+        document.body.classList.remove('printing-labels');
+        toast.success(`Đã phát lệnh in thành công!`, { id: 'printing' });
+      }, 500);
     });
   };
 
   const columns = [
-    { title: 'Mã tài sản', dataIndex: 'assetId', key: 'assetId', render: text => <span style={{ fontWeight: 'bold' }}>{text}</span> },
+    { title: 'Mã tài sản', dataIndex: 'id', key: 'id', render: text => <span style={{ fontWeight: 'bold' }}>{text}</span> },
     { title: 'Tên tài sản / Thiết bị', dataIndex: 'name', key: 'name' },
-    { title: 'Vị trí', dataIndex: 'department', key: 'department' },
+    { title: 'Vị trí', dataIndex: 'location', key: 'location', render: text => text || 'Kho vật tư BR' },
     { 
       title: 'Trạng thái RFID', 
-      dataIndex: 'hasRFID', 
-      key: 'hasRFID',
-      render: (hasRFID, record) => (
-        hasRFID ? <Tag color="success">Đã có Tag ({record.rfidTag.slice(-4)})</Tag> : <Tag color="warning">Chưa có Tag</Tag>
+      dataIndex: 'rfid', 
+      key: 'rfid',
+      render: (rfid) => (
+        rfid ? <Tag color="success">Đã có Tag ({rfid.slice(-4)})</Tag> : <Tag color="warning">Chưa có Tag</Tag>
       )
     }
   ];
@@ -91,8 +99,41 @@ const RFIDPrint = () => {
     },
   };
 
+  const selectedAssetsToPrint = data.filter(item => selectedRowKeys.includes(item.keyId));
+
   return (
-    <div style={{ animation: 'fadeIn 0.5s ease-in-out' }}>
+    <>
+      <div id="printable-area">
+        {selectedAssetsToPrint.map((asset, idx) => (
+          <div key={idx} style={{ 
+            width: '8cm', 
+            height: '4cm', 
+            padding: '10px', 
+            border: '1px solid #000', 
+            margin: '10px', 
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'center',
+            alignItems: 'center',
+            backgroundColor: '#fff',
+            pageBreakInside: 'avoid'
+          }}>
+            <strong style={{ fontSize: '14px', marginBottom: '4px' }}>Mã TS: {asset.id}</strong>
+            <span style={{ fontSize: '10px', textAlign: 'center', marginBottom: '8px', overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+              {asset.name}
+            </span>
+            <img 
+              src={`https://api.qrserver.com/v1/create-qr-code/?size=60x60&data=${asset.id}`} 
+              alt={asset.id} 
+              style={{ width: '60px', height: '60px' }}
+            />
+            {asset.rfid && (
+              <span style={{ fontSize: '8px', marginTop: '4px' }}>RFID: {asset.rfid.slice(-6)}</span>
+            )}
+          </div>
+        ))}
+      </div>
+      <div style={{ animation: 'fadeIn 0.5s ease-in-out' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
         <Title level={3} style={{ margin: 0 }}>In Tem Nhãn / Barcode RFID</Title>
       </div>
@@ -117,7 +158,9 @@ const RFIDPrint = () => {
             <Table 
               rowSelection={rowSelection}
               columns={columns} 
-              dataSource={filteredData} 
+              dataSource={filteredData}
+              rowKey="keyId"
+              loading={loading}
               pagination={{ pageSize: 8 }} 
               size="small"
             />
@@ -131,7 +174,7 @@ const RFIDPrint = () => {
             style={{ borderRadius: 8, boxShadow: '0 1px 2px 0 rgba(0,0,0,0.03)' }}
           >
             <Alert 
-              message={`Đã chọn: ${selectedRowKeys.length} tài sản`}
+              title={`Đã chọn: ${selectedRowKeys.length} tài sản`}
               type="info" 
               showIcon 
               style={{ marginBottom: 24 }}
@@ -175,7 +218,8 @@ const RFIDPrint = () => {
           </Card>
         </Col>
       </Row>
-    </div>
+      </div>
+    </>
   );
 };
 

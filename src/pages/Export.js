@@ -137,7 +137,12 @@ const Export = () => {
             <Button type="text" icon={<EyeOutlined />} onClick={() => showDrawer(record)} style={{ color: '#1890ff' }} />
           </Tooltip>
           <Tooltip title="In phiếu">
-            <Button type="text" icon={<PrinterOutlined />} onClick={() => message.info('Đang kết nối máy in...')} />
+            <Button type="text" icon={<PrinterOutlined />} onClick={() => {
+              showDrawer(record);
+              setTimeout(() => {
+                window.print();
+              }, 500);
+            }} />
           </Tooltip>
         </Space>
       ),
@@ -210,7 +215,8 @@ const Export = () => {
 
       <Drawer
         title={viewingItem ? `Chi tiết phiếu xuất: ${viewingItem.slipId}` : "Chi Tiết Phiếu Xuất"}
-        width={900}
+        size="large"
+        placement="right"
         onClose={onClose}
         open={isDrawerVisible}
       >

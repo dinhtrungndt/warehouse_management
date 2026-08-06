@@ -223,7 +223,7 @@ const Inventory = () => {
         <Table 
           columns={columns} 
           dataSource={filteredData} 
-          rowKey="keyId"
+          rowKey="key"
           loading={loading}
           pagination={{ pageSize: 10 }} 
           size="middle"
@@ -302,7 +302,7 @@ const Inventory = () => {
             <Table 
               columns={detailColumns} 
               dataSource={detailItems} 
-              rowKey="keyId"
+              rowKey="key"
               loading={detailLoading}
               pagination={false} 
               size="small"

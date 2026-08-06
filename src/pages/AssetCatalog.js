@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import apiClient from '../services/apiClient';
 import {
   Table,
@@ -31,8 +32,10 @@ const { Option } = Select;
 // Removed mock data generator
 
 const AssetCatalog = () => {
+  const navigate = useNavigate();
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [selectedRowKeys, setSelectedRowKeys] = useState([]);
 
   const fetchData = async () => {
     setLoading(true);
@@ -228,7 +231,13 @@ const AssetCatalog = () => {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
         <Typography.Title level={3} style={{ margin: 0 }}>Danh Mục Tài Sản / CCDC / Vật Tư</Typography.Title>
         <Space>
-          <Button icon={<PrinterOutlined />} onClick={() => toast('Tính năng in đang phát triển', { icon: '🖨️' })}>
+          <Button icon={<PrinterOutlined />} onClick={() => {
+            if (selectedRowKeys.length === 0) {
+              toast.error('Vui lòng chọn ít nhất 1 tài sản để in tem!');
+              return;
+            }
+            navigate('/rfid/in-the', { state: { selectedRowKeys } });
+          }}>
             In Tem
           </Button>
           <Button type="primary" icon={<PlusOutlined />} onClick={() => showModal()}>
@@ -263,8 +272,9 @@ const AssetCatalog = () => {
           }}
           rowSelection={{
             type: 'checkbox',
-            onChange: (selectedRowKeys) => {
-              console.log(`selectedRowKeys: ${selectedRowKeys}`);
+            selectedRowKeys,
+            onChange: (keys) => {
+              setSelectedRowKeys(keys);
             }
           }}
           size="middle"

@@ -24,3 +24,38 @@ x::-webkit-scrollbar {
 ::-webkit-scrollbar-thumb:hover {
   background: #999;
 }
+
+#printable-area {
+  display: none;
+}
+
+@media print {
+  /* RFID Labels printing */
+  body.printing-labels * {
+    visibility: hidden;
+  }
+  body.printing-labels #printable-area {
+    display: flex !important;
+    flex-wrap: wrap;
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+  }
+  body.printing-labels #printable-area * {
+    visibility: visible;
+  }
+
+  /* Normal UI printing (like slips, drawers) */
+  body:not(.printing-labels) .ant-layout-sider,
+  body:not(.printing-labels) .ant-layout-header {
+    display: none !important;
+  }
+  body:not(.printing-labels) .ant-layout {
+    background: #fff;
+  }
+  body:not(.printing-labels) .ant-layout-content {
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+}

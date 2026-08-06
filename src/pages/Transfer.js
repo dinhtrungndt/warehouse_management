@@ -148,7 +148,12 @@ const Transfer = () => {
             <Button type="text" icon={<EyeOutlined />} onClick={() => showDrawer(record)} style={{ color: '#1890ff' }} />
           </Tooltip>
           <Tooltip title="In phiếu">
-            <Button type="text" icon={<PrinterOutlined />} onClick={() => message.info('Đang kết nối máy in...')} />
+            <Button type="text" icon={<PrinterOutlined />} onClick={() => {
+              showDrawer(record);
+              setTimeout(() => {
+                window.print();
+              }, 500);
+            }} />
           </Tooltip>
         </Space>
       ),
@@ -220,8 +225,8 @@ const Transfer = () => {
       </Card>
 
       <Drawer
-        title={viewingItem ? `Chi tiết phiếu điều chuyển: ${viewingItem.slipId}` : "Chi Tiết Phiếu Điều Chuyển"}
-        width={900}
+        title={viewingItem ? `Chi tiết phiếu điều chuyển: ${viewingItem.slipId}` : "Chi Tiết Điều Chuyển"}
+        size="large"
         onClose={onClose}
         open={isDrawerVisible}
       >
