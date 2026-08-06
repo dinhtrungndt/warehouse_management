@@ -1,6 +1,6 @@
 {
   "short_name": "Quản lý kho",
-  "name": "Website quản lý kho",
+  "name": "Hệ thống Quản lý kho",
   "icons": [
     {
       "src": "favicon.ico",
@@ -20,6 +20,6 @@
   ],
   "start_url": ".",
   "display": "standalone",
-  "theme_color": "#000000",
-  "background_color": "#ffffff"
+  "theme_color": "#1890ff",
+  "background_color": "#f0f2f5"
 }
