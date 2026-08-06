@@ -69,12 +69,14 @@ const AssetCatalog = () => {
   // Handle Modal Open
   const showModal = (record = null) => {
     setEditingItem(record);
-    if (record) {
-      form.setFieldsValue(record);
-    } else {
-      form.resetFields();
-    }
     setIsModalVisible(true);
+    setTimeout(() => {
+      if (record) {
+        form.setFieldsValue(record);
+      } else {
+        form.resetFields();
+      }
+    }, 0);
   };
 
   // Handle Modal Close
@@ -99,7 +101,7 @@ const AssetCatalog = () => {
         form.resetFields();
         fetchData();
       } catch (error) {
-        toast.error('Có lỗi xảy ra!');
+        toast.error(error.response?.data?.error || 'Có lỗi xảy ra!');
       }
     }).catch(info => {
       console.log('Validate Failed:', info);
@@ -137,7 +139,7 @@ const AssetCatalog = () => {
       key: 'category',
       width: 120,
       render: category => {
-        let color = category === 'Tài sản' ? 'blue' : 'green';
+        let color = category === 'Tài sản' ? 'blue' : category === 'PVGAS' ? 'orange' : 'green';
         return <Tag color={color}>{category}</Tag>;
       },
     },
@@ -281,12 +283,17 @@ const AssetCatalog = () => {
       >
         <Form form={form} layout="vertical" style={{ marginTop: 24 }}>
           <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item name="id" label="Mã Tài Sản/Vật Tư" rules={[{ required: true }]}>
-                <Input placeholder="Nhập mã (VD: VTT010048C)" />
+            <Col span={8}>
+              <Form.Item name="prefix" label="Tiền tố Mã TS">
+                <Input placeholder="VD: 5-02PXVH" disabled={!!editingItem} />
               </Form.Item>
             </Col>
-            <Col span={12}>
+            <Col span={8}>
+              <Form.Item name="id" label="Mã tự động">
+                <Input disabled placeholder="(Tự sinh)" />
+              </Form.Item>
+            </Col>
+            <Col span={8}>
               <Form.Item name="name" label="Tên Thiết Bị/Vật Tư" rules={[{ required: true }]}>
                 <Input placeholder="Nhập tên thiết bị" />
               </Form.Item>
@@ -300,6 +307,7 @@ const AssetCatalog = () => {
                   <Option value="Tài sản">Tài sản</Option>
                   <Option value="Vật tư">Vật tư</Option>
                   <Option value="CCDC">CCDC</Option>
+                  <Option value="PVGAS">PVGAS</Option>
                 </Select>
               </Form.Item>
             </Col>
@@ -327,8 +335,8 @@ const AssetCatalog = () => {
               </Form.Item>
             </Col>
             <Col span={8}>
-              <Form.Item name="status" label="Trạng Thái">
-                <Select defaultValue="active">
+              <Form.Item name="status" label="Trạng Thái" initialValue="active">
+                <Select>
                   <Option value="active">Hoạt động</Option>
                   <Option value="inactive">Tạm ngưng</Option>
                 </Select>

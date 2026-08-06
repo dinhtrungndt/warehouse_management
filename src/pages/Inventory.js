@@ -102,7 +102,6 @@ const Inventory = () => {
   const showCreateModal = () => {
     form.resetFields();
     form.setFieldsValue({
-      code: `KK${dayjs().format('YYMMDDHHmm')}`,
       date: dayjs(),
     });
     setIsModalVisible(true);
@@ -242,8 +241,8 @@ const Inventory = () => {
         okButtonProps={{ style: { backgroundColor: '#13c2c2', borderColor: '#13c2c2' } }}
       >
         <Form form={form} layout="vertical" style={{ marginTop: 20 }}>
-          <Form.Item name="code" label="Mã kiểm kê" rules={[{ required: true }]}>
-            <Input disabled />
+          <Form.Item name="code" label="Mã kiểm kê">
+            <Input disabled placeholder="Mã sẽ tự động sinh" />
           </Form.Item>
           <Form.Item name="title" label="Tên đợt kiểm kê" rules={[{ required: true, message: 'Vui lòng nhập tên đợt kiểm kê!' }]}>
             <Input placeholder="VD: Kiểm kê quý 3 năm 2026" />
