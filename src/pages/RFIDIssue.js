@@ -60,23 +60,6 @@ const RFIDIssue = () => {
     rfidForm.resetFields();
   };
 
-  const simulateScan = () => {
-    if (!selectedAsset) {
-      toast.error('Vui lòng chọn tài sản cần gán mã ở bảng bên trái trước!');
-      return;
-    }
-    setIsScanning(true);
-    toast('Đang chờ thiết bị đầu đọc...', { icon: '📡' });
-    
-    setTimeout(() => {
-      // Simulate reading a tag
-      const mockTag = `E28011700000${Math.floor(10000000 + Math.random() * 90000000)}`;
-      rfidForm.setFieldsValue({ rfidTag: mockTag });
-      setIsScanning(false);
-      toast.success('Đã đọc thẻ thành công!');
-    }, 1500);
-  };
-
   const handleSaveRFID = async () => {
     try {
       const values = await rfidForm.validateFields();
@@ -195,20 +178,10 @@ const RFIDIssue = () => {
                     rules={[{ required: true, message: 'Mã thẻ không được để trống!' }]}
                   >
                     <Input 
-                      placeholder="Quét hoặc nhập thủ công..." 
+                      placeholder="Dùng máy quét PDA để nhập mã..." 
                       size="large"
                       prefix={<BarcodeOutlined />}
-                      addonAfter={
-                        <Button 
-                          type="primary" 
-                          icon={<WifiOutlined />} 
-                          loading={isScanning}
-                          onClick={simulateScan}
-                          style={{ borderTopLeftRadius: 0, borderBottomLeftRadius: 0 }}
-                        >
-                          Quét
-                        </Button>
-                      }
+                      autoFocus
                     />
                   </Form.Item>
 

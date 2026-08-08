@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Quản lý kho</string>
+    <string name="title_activity_main">Quản lý kho</string>
+    <string name="package_name">vn.id.dinhtrung.warehousemanagement</string>
+    <string name="custom_url_scheme">vn.id.dinhtrung.warehousemanagement</string>
+</resources>
